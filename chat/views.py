@@ -3,13 +3,15 @@ from collections.abc import AsyncGenerator
 
 import psycopg
 from django.db import connection
-from django.http import HttpRequest, HttpResponse
+from django.http import HttpRequest
+from django.http import HttpResponse
 from django.http import StreamingHttpResponse
 from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import require_POST
 
 from chat.models import ChatMessage
 from chat.utils import notify
+from chat.utils import sse_message
 
 
 async def stream_messages(last_id: int | None = None) -> AsyncGenerator[str, None]:
@@ -18,7 +20,7 @@ async def stream_messages(last_id: int | None = None) -> AsyncGenerator[str, Non
     # Remove the cursor_factory parameter since I can't get
     # the default from Django 4.2.1 to work.
     # Django 4.2 didn't have the parameter and that worked.
-    connection_params.pop('cursor_factory')
+    connection_params.pop("cursor_factory")
 
     aconnection = await psycopg.AsyncConnection.connect(
         **connection_params,
@@ -37,17 +39,25 @@ async def stream_messages(last_id: int | None = None) -> AsyncGenerator[str, Non
     if last_id:
         messages = ChatMessage.objects.filter(id__gt=last_id)
         async for message in messages:
-            yield f"id: {message.id}\nevent: message_created\ndata: {message.as_json()}\n\n"
+            yield sse_message(
+                event="message_created",
+                event_id=message.id,
+                data=message.as_json(),
+            )
 
     async with aconnection.cursor() as acursor:
         await acursor.execute(f"LISTEN {channel_name}")
         gen = aconnection.notifies()
-        async for notify in gen:
-            payload = json.loads(notify.payload)
+        async for notify_message in gen:
+            payload = json.loads(notify_message.payload)
             event = payload.get("event")
             event_id = payload.get("event_id")
             data = payload.get("data")
-            yield f"id: {event_id}\nevent: {event}\ndata: {data}\n\n"
+            yield sse_message(
+                event=event,
+                event_id=event_id,
+                data=data,
+            )
 
 
 async def stream_messages_view(
@@ -70,6 +80,6 @@ def post_message_view(request: HttpRequest) -> HttpResponse:
         channel="lobby",
         event="message_created",
         event_id=message.id,
-        data=message.as_json()
+        data=message.as_json(),
     )
     return HttpResponse("OK")

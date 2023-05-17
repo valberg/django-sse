@@ -10,5 +10,10 @@ class ChatMessage(models.Model):
 
     def as_json(self):
         return json.dumps(
-            {'id': self.id, 'user': self.user, 'text': self.text, 'room': self.room}
+            {
+                "id": self.id,
+                "user": self.user,
+                "text": self.text,
+                "room": self.room,
+            },
         )

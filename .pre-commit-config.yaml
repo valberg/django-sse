@@ -1,0 +1,57 @@
+default_language_version:
+  python: python3.11
+repos:
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v4.4.0
+    hooks:
+      - id: check-ast
+      - id: check-merge-conflict
+      - id: check-case-conflict
+      - id: detect-private-key
+      - id: check-added-large-files
+      - id: check-json
+      - id: check-symlinks
+      - id: check-toml
+      - id: end-of-file-fixer
+      - id: trailing-whitespace
+  - repo: https://github.com/charliermarsh/ruff-pre-commit
+    rev: 'v0.0.247'
+    hooks:
+      - id: ruff
+        args:
+          - --fix
+  - repo: https://github.com/asottile/reorder_python_imports
+    rev: v3.9.0
+    hooks:
+      - id: reorder-python-imports
+        args:
+          - --py310-plus
+          - --application-directories=.:src
+        exclude: migrations/
+  - repo: https://github.com/asottile/pyupgrade
+    rev: v3.3.1
+    hooks:
+      - id: pyupgrade
+        args:
+          - --py310-plus
+        exclude: migrations/
+  - repo: https://github.com/adamchainz/django-upgrade
+    rev: 1.12.0
+    hooks:
+      - id: django-upgrade
+        args:
+          - --target-version=3.2
+  - repo: https://github.com/asottile/yesqa
+    rev: v1.4.0
+    hooks:
+      -   id: yesqa
+  - repo: https://github.com/asottile/add-trailing-comma
+    rev: v2.4.0
+    hooks:
+      -   id: add-trailing-comma
+          args:
+            - --py36-plus
+  - repo: https://github.com/psf/black
+    rev: 23.1.0
+    hooks:
+      - id: black

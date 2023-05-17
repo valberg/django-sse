@@ -15,20 +15,21 @@ Including another URLconf
     2. Add a URL to urlpatterns:  path('blog/', include('blog.urls'))
 """
 from django.contrib import admin
-from django.http import HttpRequest, HttpResponse
+from django.http import HttpRequest
+from django.http import HttpResponse
 from django.shortcuts import render
 from django.urls import path
 
 from chat.models import ChatMessage
-from chat.views import stream_messages_view, post_message_view
+from chat.views import post_message_view
+from chat.views import stream_messages_view
 
 
 def lobby(request: HttpRequest) -> HttpResponse:
-
     return render(
         request,
         "lobby.html",
-        context={"messages": ChatMessage.objects.all().order_by("-id")}
+        context={"messages": ChatMessage.objects.all().order_by("-id")},
     )
 
 
@@ -36,5 +37,5 @@ urlpatterns = [
     path("", lobby, name="lobby"),
     path("messages/", stream_messages_view, name="stream-messages"),
     path("new_message/", post_message_view, name="new-message"),
-    path('admin/', admin.site.urls),
+    path("admin/", admin.site.urls),
 ]
