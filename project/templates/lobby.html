@@ -8,8 +8,22 @@
 
     <h1>SSE Chat!</h1>
 
+    <div>
+        <label for="username">Username: </label>
+        <input type="text" id="username" />
+        <label for="new-message">Message: </label>
+        <input type="text" id="new-message" />
+    </div>
+     <hr />
+
+    <div id="messages">
+    </div>
+
     {% for message in messages %}
     <div style="border: 1px solid black; margin: 5px; padding: 5px;">
+        <strong class="id">
+            {{ message.id }}
+        </strong> :
         <strong class="user">
            {{ message.user }}
         </strong>:
@@ -19,20 +33,11 @@
     </div>
     {% endfor %}
 
-
-    <div id="messages">
-    </div>
-
-    <div>
-        <label for="username">Username: </label>
-        <input type="text" id="username" />
-        <label for="new-message">Message: </label>
-        <input type="text" id="new-message" />
-    </div>
-
     <template id="message">
         <div style="border: 1px solid black; margin: 5px; padding: 5px;">
-            <strong class="user"></strong>: <span class="message"></span>
+            <strong class="id"></strong> :
+            <strong class="user"></strong> :
+            <span class="message"></span>
         </div>
     </template>
 
@@ -50,11 +55,12 @@
             let clone = template.content.cloneNode(true);
 
             // Update our cloned template
+            clone.querySelector('.id').innerText = payload.id;
             clone.querySelector('.user').innerText = payload.user;
             clone.querySelector('.message').innerText = payload.text;
 
             // Append the cloned template to our list of messages
-            document.getElementById('messages').appendChild(clone);
+            document.getElementById('messages').prepend(clone);
         });
 
         // Setup form submit listener

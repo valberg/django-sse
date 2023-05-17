@@ -12,7 +12,7 @@ from chat.models import ChatMessage
 from chat.utils import notify
 
 
-async def stream_messages() -> AsyncGenerator[str, None]:
+async def stream_messages(last_id: int | None = None) -> AsyncGenerator[str, None]:
     connection_params = connection.get_connection_params()
 
     # Remove the cursor_factory parameter since I can't get
@@ -25,21 +25,37 @@ async def stream_messages() -> AsyncGenerator[str, None]:
         autocommit=True,
     )
     channel_name = "lobby"
+
+    # Uncomment the following to generate random message to
+    # test that we are streaming messages that are created
+    # while the client is disconnected.
+
+    # await ChatMessage.objects.acreate(
+    #     user="system",
+    #     text="randomly generated", room=channel_name)
+
+    if last_id:
+        messages = ChatMessage.objects.filter(id__gt=last_id)
+        async for message in messages:
+            yield f"id: {message.id}\nevent: message_created\ndata: {message.as_json()}\n\n"
+
     async with aconnection.cursor() as acursor:
         await acursor.execute(f"LISTEN {channel_name}")
         gen = aconnection.notifies()
         async for notify in gen:
             payload = json.loads(notify.payload)
-            event = payload.pop("event")
-            data = payload.pop("data")
-            yield f"event: {event}\ndata: {data}\n\n"
+            event = payload.get("event")
+            event_id = payload.get("event_id")
+            data = payload.get("data")
+            yield f"id: {event_id}\nevent: {event}\ndata: {data}\n\n"
 
 
 async def stream_messages_view(
     request: HttpRequest,
 ) -> StreamingHttpResponse:
+    last_id = request.headers.get("Last-Event-ID")
     return StreamingHttpResponse(
-        streaming_content=stream_messages(),
+        streaming_content=stream_messages(last_id=last_id),
         content_type="text/event-stream",
     )
 
@@ -53,9 +69,7 @@ def post_message_view(request: HttpRequest) -> HttpResponse:
     notify(
         channel="lobby",
         event="message_created",
-        data=json.dumps({
-            "text": message.text,
-            "user": message.user,
-        })
+        event_id=message.id,
+        data=message.as_json()
     )
     return HttpResponse("OK")

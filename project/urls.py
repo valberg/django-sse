@@ -28,7 +28,7 @@ def lobby(request: HttpRequest) -> HttpResponse:
     return render(
         request,
         "lobby.html",
-        context={"messages": ChatMessage.objects.all().order_by("id")}
+        context={"messages": ChatMessage.objects.all().order_by("-id")}
     )
 
 
