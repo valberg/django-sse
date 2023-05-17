@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>SSE Chat!</title>
+</head>
+<body>
+
+    <h1>SSE Chat!</h1>
+
+    {% for message in messages %}
+    <div style="border: 1px solid black; margin: 5px; padding: 5px;">
+        <strong class="user">
+           {{ message.user }}
+        </strong>:
+        <span class="message">
+            {{ message.text }}
+        </span>
+    </div>
+    {% endfor %}
+
+
+    <div id="messages">
+    </div>
+
+    <div>
+        <label for="username">Username: </label>
+        <input type="text" id="username" />
+        <label for="new-message">Message: </label>
+        <input type="text" id="new-message" />
+    </div>
+
+    <template id="message">
+        <div style="border: 1px solid black; margin: 5px; padding: 5px;">
+            <strong class="user"></strong>: <span class="message"></span>
+        </div>
+    </template>
+
+
+    <script>
+        // Setup EventSource
+        const source = new EventSource('{% url "stream-messages" %}');
+
+        source.addEventListener("message_created", function(evt) {
+            // Parse the payload
+            let payload = JSON.parse(evt.data);
+
+            // Get and clone our template
+            let template = document.getElementById('message');
+            let clone = template.content.cloneNode(true);
+
+            // Update our cloned template
+            clone.querySelector('.user').innerText = payload.user;
+            clone.querySelector('.message').innerText = payload.text;
+
+            // Append the cloned template to our list of messages
+            document.getElementById('messages').appendChild(clone);
+        });
+
+        // Setup form submit listener
+        let inputField = document.getElementById('new-message');
+
+        inputField.addEventListener('keypress', function(evt) {
+            if (evt.key === 'Enter') {
+                let data = new FormData();
+                let message = inputField.value;
+                let username = document.getElementById('username').value;
+                data.append('message', message);
+                data.append('user', username);
+                fetch('{% url "new-message" %}', {
+                    method: 'POST',
+                    body: data
+                });
+                inputField.value = '';
+            }
+        });
+
+    </script>
+
+</body>
+</html>
